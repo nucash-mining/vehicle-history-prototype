@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vehicle History Prototype</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --fg: #1c1c1a; --muted: #6b6b66; --card: #ffffff;
+    --border: #e2e2dc; --live: #1f7a4d; --stub: #9a6b00; --partial: #8a4fbf; --accent: #2456c9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --fg: #ececea; --muted: #9a9a94; --card: #1f1f1d;
+      --border: #33332f; --live: #4cc38a; --stub: #e0a83a; --partial: #b88be0; --accent: #7aa2ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  form { display: flex; gap: 8px; margin-bottom: 24px; }
+  input { flex: 1; min-width: 0; padding: 10px 12px; font: inherit; font-family: ui-monospace, monospace;
+          text-transform: uppercase; border: 1px solid var(--border); border-radius: 8px;
+          background: var(--card); color: var(--fg); }
+  button { padding: 10px 16px; font: inherit; border: 0; border-radius: 8px;
+           background: var(--accent); color: #fff; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: wait; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+          padding: 16px; margin-bottom: 12px; }
+  .vehicle { font-size: 1.15rem; font-weight: 600; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .badge { font-size: .75rem; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
+  .LIVE { color: var(--live); } .STUB { color: var(--stub); } .PARTIAL { color: var(--partial); }
+  .note { color: var(--muted); font-size: .9rem; margin: 6px 0 0; }
+  ul { margin: 8px 0 0; padding-left: 18px; }
+  li { margin: 2px 0; }
+  code { font-family: ui-monospace, monospace; font-size: .85rem; }
+  .score { font-size: 2rem; font-weight: 700; }
+  .error { color: #d14343; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Vehicle History Prototype</h1>
+  <p class="sub">Free NHTSA data only. Sections that need licensed data are marked as stubs.</p>
+
+  <form id="f">
+    <input id="vin" maxlength="17" placeholder="17-character VIN" value="1HGCM82633A004352" aria-label="VIN">
+    <button id="go" type="submit">Check</button>
+  </form>
+
+  <div id="out"></div>
+</main>
+
+<script>
+const STUBS = [
+  ["STUB", "Title, salvage, odometer, liens", "Needs an NMVTIS reseller contract (VinAudit, CarsXE)."],
+  ["STUB", "Police-reported accidents", "Needs state DOT bulk crash data or LexisNexis BuyCrash."],
+  ["PARTIAL", "Unreported accidents", "No provider captures these fully. Planned mitigation: damage detection on listing photos."],
+  ["STUB", "Service and repair records", "Needs shop-software integrations (Tekmetric, Shopmonkey, Mitchell1)."],
+];
+const SAFETY = /AIR BAG|STEERING/i;
+
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+
+function section(status, title, note) {
+  const card = el("div", "card");
+  const row = el("div", "row");
+  row.append(el("strong", null, title), el("span", "badge " + status, status));
+  card.append(row);
+  if (note) card.append(el("p", "note", note));
+  return card;
+}
+
+function score(year, recalls) {
+  const age = new Date().getFullYear() - parseInt(year, 10);
+  const safety = recalls.filter(r => SAFETY.test(r.Component)).length;
+  let s = 100;
+  if (age > 0) s -= Math.min(age * 1.5, 40);
+  s -= Math.min(recalls.length, 20);
+  s -= safety * 5;
+  return { value: Math.max(s, 0), age, safety };
+}
+
+async function run(vin) {
+  const out = document.getElementById("out");
+  out.replaceChildren(el("p", "note", "Loading…"));
+
+  const dec = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${encodeURIComponent(vin)}?format=json`)
+    .then(r => r.json());
+  const v = dec.Results[0];
+  if (!v.Make || !v.ModelYear) {
+    out.replaceChildren(el("p", "error", "Couldn't decode that VIN: " + (v.ErrorText || "unknown error")));
+    return;
+  }
+
+  const rec = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.Make)}&model=${encodeURIComponent(v.Model)}&modelYear=${encodeURIComponent(v.ModelYear)}`)
+    .then(r => r.json());
+  // "E" campaigns are aftermarket equipment recalls, not the vehicle itself
+  const recalls = (rec.results || []).filter(r => r.NHTSACampaignNumber.charAt(2) === "V");
+
+  const head = el("div", "card");
+  head.append(el("div", "vehicle", `${v.ModelYear} ${v.Make} ${v.Model}`));
+  head.append(el("p", "note", [v.BodyClass, v.EngineCylinders && `${v.EngineCylinders}-cyl`, v.EngineModel]
+    .filter(Boolean).join(" · ")));
+
+  const rc = section("LIVE", `Recalls (${recalls.length})`,
+    "Matched by make, model and year, not VIN. Some may not apply to this exact car.");
+  if (recalls.length) {
+    const ul = el("ul");
+    for (const r of recalls) {
+      const li = el("li");
+      li.append(el("code", null, r.NHTSACampaignNumber), document.createTextNode(" " + r.Component));
+      ul.append(li);
+    }
+    rc.append(ul);
+  }
+
+  const s = score(v.ModelYear, recalls);
+  const sc = section("LIVE", "Condition score",
+    `Age ${s.age} yrs, ${recalls.length} recalls, ${s.safety} safety-critical. A rough signal, not a market value.`);
+  sc.append(el("div", "score", `${s.value.toFixed(1)} / 100`));
+
+  out.replaceChildren(head, rc, sc, ...STUBS.map(a => section(...a)));
+}
+
+document.getElementById("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const vin = document.getElementById("vin").value.trim().toUpperCase();
+  const btn = document.getElementById("go");
+  if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) {
+    document.getElementById("out").replaceChildren(el("p", "error", "A VIN is 17 letters and digits (no I, O or Q)."));
+    return;
+  }
+  btn.disabled = true;
+  try { await run(vin); }
+  catch (err) { document.getElementById("out").replaceChildren(el("p", "error", "Request failed: " + err.message)); }
+  finally { btn.disabled = false; }
+});
+</script>
+</body>
+</html>
