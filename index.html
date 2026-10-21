@@ -114,6 +114,26 @@
   .empty { text-align: center; padding: 28px 16px; color: var(--muted); }
   .empty svg { width: 64px; height: 64px; opacity: .5; }
   footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 20px; }
+  .print-head { display: none; }
+  .btn svg { width: 16px; height: 16px; }
+  @media print {
+    :root, :root[data-theme="dark"], :root:not([data-theme="light"]) {
+      --bg: #fff; --bg2: #f1f3f8; --fg: #111; --muted: #555; --card: #fff; --border: #ccd;
+      --good: #12804f; --warn: #a86a00; --bad: #c0303d; --accent: #2a55d6; --accent2: #6a3fd6; --shadow: none;
+    }
+    @page { margin: 14mm; }
+    body { font-size: 11pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .hero, .btn, .row-btns, .skel { display: none !important; }
+    main { margin: 0; padding: 0; max-width: none; }
+    .print-head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #111;
+                  padding-bottom: 8px; margin-bottom: 14px; }
+    .print-head b { font-size: 16pt; }
+    .print-head span { font-size: 9pt; color: #555; text-align: right; }
+    .card { box-shadow: none; animation: none; border-radius: 8px; padding: 12px; }
+    .head, .vehicle-card, .stats, .bar, .rating-row, .soon { break-inside: avoid; }
+    details { break-inside: avoid; }
+    footer { margin-top: 10px; }
+  }
   @media (max-width: 420px) { .stats { grid-template-columns: repeat(2, 1fr); } .gauge { width: 88px; height: 88px; } }
 </style>
 </head>
@@ -134,6 +154,7 @@
 </header>
 
 <main>
+  <div class="print-head" id="print-head"></div>
   <div id="out">
     <div class="card empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6M7 17h4"/></svg>
@@ -153,6 +174,7 @@ const ICONS = {
   doc: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/>',
   crash: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
   wrench: '<path d="M14.7 6.3a4 4 0 0 0 5 5L22 14l-8 8-2.3-2.3a4 4 0 0 0-5-5L2 10l8-8Z"/>',
+  print: '<path d="M6 9V2h12v7"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>',
   eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/>',
 };
 const SAFETY = /AIR BAG|STEERING|BRAKE|FUEL|SEAT BELT|TIRE/i;
@@ -274,6 +296,10 @@ async function run(vin) {
   vc.append(specs);
   vc.append(el("p", "note", `Score: ${s.age} years old, ${recalls.length} recalls (${s.safety} safety-related), ${complaints.length} owner complaints. A rough risk signal, not a market value.`));
   if (failed.length) vc.append(el("p", "note", `Couldn't load ${failed.join(" and ")} from NHTSA, so those show as zero. Try again in a minute.`));
+  const pb = el("button", "btn ghost"); pb.type = "button";
+  pb.append(svg("print"), document.createTextNode("Print report"));
+  pb.addEventListener("click", printReport);
+  vc.append(pb);
   cards.push(vc);
 
   // Stolen check
@@ -371,7 +397,25 @@ async function run(vin) {
 
   cards.forEach((c, i) => c.style.animationDelay = (i * 60) + "ms");
   out.replaceChildren(...cards);
+  document.title = `VinTrace report - ${v.ModelYear} ${titleCase(v.Make)} ${v.Model} ${vin}`;
+  const ph = document.getElementById("print-head");
+  const right = el("span"); right.append(`VIN ${vin}`, el("br"), `Generated ${new Date().toLocaleString()}`);
+  ph.replaceChildren(el("b", null, `Vehicle History Report: ${v.ModelYear} ${titleCase(v.Make)} ${v.Model}`), right);
   saveRecent(vin, `${v.ModelYear} ${titleCase(v.Make)} ${v.Model}`);
+}
+
+// Expand every recall so the printout includes the full details
+function printReport() {
+  const closed = [...document.querySelectorAll("details:not([open])")];
+  closed.forEach(d => d.open = true);
+  const restore = () => closed.forEach(d => d.open = false);
+  if (window.AndroidPrint) {           // inside the Android app
+    window.AndroidPrint.print(document.title);
+    setTimeout(restore, 3000);
+  } else {
+    window.addEventListener("afterprint", restore, { once: true });
+    window.print();
+  }
 }
 
 function loadRecent() { try { return JSON.parse(localStorage.getItem("recent") || "[]"); } catch { return []; } }

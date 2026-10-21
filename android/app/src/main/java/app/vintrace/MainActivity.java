@@ -5,7 +5,10 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.print.PrintAttributes;
+import android.print.PrintManager;
 import android.webkit.ConsoleMessage;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -47,6 +50,17 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
+        // Lets the page's "Print report" button open Android's print / save-as-PDF screen
+        web.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void print(final String title) {
+                runOnUiThread(() -> {
+                    PrintManager pm = (PrintManager) getSystemService(PRINT_SERVICE);
+                    String job = (title == null || title.isEmpty()) ? "VinTrace report" : title;
+                    pm.print(job, web.createPrintDocumentAdapter(job), new PrintAttributes.Builder().build());
+                });
+            }
+        }, "AndroidPrint");
         setContentView(web);
         if (state != null) web.restoreState(state);
         else web.loadUrl("file:///android_asset/index.html");
