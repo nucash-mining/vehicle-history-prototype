@@ -1,0 +1,23 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'app.vintrace'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'app.vintrace'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+    buildTypes {
+        release { minifyEnabled false; signingConfig signingConfigs.debug }
+    }
+}
+
+// Ship the same index.html that GitHub Pages serves
+tasks.register('copyWeb', Copy) {
+    from("$rootDir/../index.html")
+    into("$projectDir/src/main/assets")
+}
+preBuild.dependsOn copyWeb

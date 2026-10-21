@@ -2,67 +2,161 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vehicle History Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>VinTrace</title>
 <style>
   :root {
-    --bg: #f7f7f5; --fg: #1c1c1a; --muted: #6b6b66; --card: #ffffff;
-    --border: #e2e2dc; --live: #1f7a4d; --stub: #9a6b00; --partial: #8a4fbf; --accent: #2456c9;
+    --bg: #f3f5fa; --bg2: #e6ebf5; --fg: #121726; --muted: #5d6680; --card: #ffffff;
+    --border: #dfe4ef; --accent: #3b6cff; --accent2: #7c4dff;
+    --good: #16a36a; --warn: #d98a00; --bad: #e0414f; --info: #3b6cff;
+    --shadow: 0 1px 2px rgba(16,24,48,.06), 0 6px 20px rgba(16,24,48,.06);
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #151514; --fg: #ececea; --muted: #9a9a94; --card: #1f1f1d;
-      --border: #33332f; --live: #4cc38a; --stub: #e0a83a; --partial: #b88be0; --accent: #7aa2ff;
+    :root:not([data-theme="light"]) {
+      --bg: #0b1020; --bg2: #121a33; --fg: #e9edf7; --muted: #8e98b3; --card: #141b30;
+      --border: #222c47; --accent: #6d8dff; --accent2: #a283ff;
+      --good: #3fd395; --warn: #ffb547; --bad: #ff6b78; --info: #6d8dff;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
     }
   }
+  :root[data-theme="dark"] {
+    --bg: #0b1020; --bg2: #121a33; --fg: #e9edf7; --muted: #8e98b3; --card: #141b30;
+    --border: #222c47; --accent: #6d8dff; --accent2: #a283ff;
+    --good: #3fd395; --warn: #ffb547; --bad: #ff6b78; --info: #6d8dff;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  }
   * { box-sizing: border-box; }
+  html { -webkit-tap-highlight-color: transparent; }
   body { margin: 0; background: var(--bg); color: var(--fg);
-         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
-  h1 { font-size: 1.5rem; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 24px; }
-  form { display: flex; gap: 8px; margin-bottom: 24px; }
-  input { flex: 1; min-width: 0; padding: 10px 12px; font: inherit; font-family: ui-monospace, monospace;
-          text-transform: uppercase; border: 1px solid var(--border); border-radius: 8px;
-          background: var(--card); color: var(--fg); }
-  button { padding: 10px 16px; font: inherit; border: 0; border-radius: 8px;
-           background: var(--accent); color: #fff; cursor: pointer; }
-  button:disabled { opacity: .6; cursor: wait; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-          padding: 16px; margin-bottom: 12px; }
-  .vehicle { font-size: 1.15rem; font-weight: 600; }
-  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-  .badge { font-size: .75rem; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
-  .LIVE { color: var(--live); } .STUB { color: var(--stub); } .PARTIAL { color: var(--partial); }
-  .note { color: var(--muted); font-size: .9rem; margin: 6px 0 0; }
-  ul { margin: 8px 0 0; padding-left: 18px; }
-  li { margin: 2px 0; }
-  code { font-family: ui-monospace, monospace; font-size: .85rem; }
-  .score { font-size: 2rem; font-weight: 700; }
-  .error { color: #d14343; }
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .hero { background: linear-gradient(135deg, #1d2b64 0%, #3b2a8c 55%, #6b2fa8 100%); color: #fff;
+          padding: calc(28px + env(safe-area-inset-top)) 16px 72px; }
+  .hero-inner, main { max-width: 760px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.35rem; letter-spacing: -.01em; }
+  .brand svg { width: 30px; height: 30px; }
+  .tag { opacity: .8; margin: 6px 0 20px; font-size: .95rem; }
+  form { display: flex; gap: 8px; background: rgba(255,255,255,.12); padding: 6px; border-radius: 14px;
+         border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(6px); }
+  input { flex: 1; min-width: 0; padding: 12px; font: 600 1rem ui-monospace, "Roboto Mono", monospace; letter-spacing: .08em;
+          text-transform: uppercase; border: 0; border-radius: 10px; background: #fff; color: #121726; }
+  input:focus { outline: 3px solid #ffd54a; }
+  button.go { padding: 12px 18px; font: 700 1rem inherit; font-family: inherit; border: 0; border-radius: 10px;
+              background: #ffd54a; color: #1b1b1b; cursor: pointer; }
+  button.go:disabled { opacity: .6; }
+  .recent { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { font: 600 .75rem ui-monospace, monospace; padding: 4px 9px; border-radius: 99px; cursor: pointer;
+          background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+  main { padding: 0 16px calc(48px + env(safe-area-inset-bottom)); margin-top: -52px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+          margin-bottom: 12px; box-shadow: var(--shadow); animation: up .35s ease both; }
+  @keyframes up { from { opacity: 0; transform: translateY(8px); } }
+  .head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none; }
+  .ico svg { width: 19px; height: 19px; }
+  .head h2 { font-size: 1rem; margin: 0; flex: 1; }
+  .pill { font-size: .68rem; font-weight: 800; letter-spacing: .06em; padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+  .p-live { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+  .p-soon { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); }
+  .p-link { background: color-mix(in srgb, var(--info) 15%, transparent); color: var(--info); }
+  .note { color: var(--muted); font-size: .86rem; margin: 6px 0 0; }
+  .vehicle-card { display: flex; gap: 16px; align-items: center; }
+  .vname { font-size: 1.3rem; font-weight: 800; line-height: 1.2; }
+  .vin-plate { display: inline-block; margin-top: 6px; font: 700 .8rem ui-monospace, monospace; letter-spacing: .1em;
+               padding: 3px 8px; border-radius: 6px; background: var(--bg2); color: var(--muted); }
+  .specs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 14px; }
+  .spec { background: var(--bg2); border-radius: 10px; padding: 8px 10px; }
+  .spec b { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+  .spec span { font-weight: 600; font-size: .9rem; }
+  .gauge { flex: none; width: 104px; height: 104px; position: relative; }
+  .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge .val { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; line-height: 1.05; }
+  .gauge .val b { font-size: 1.6rem; }
+  .gauge .val small { font-size: .65rem; color: var(--muted); display: block; text-transform: uppercase; letter-spacing: .06em; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .stat { text-align: center; background: var(--bg2); border-radius: 10px; padding: 8px 4px; }
+  .stat b { display: block; font-size: 1.25rem; }
+  .stat span { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .bars { margin-top: 12px; display: grid; gap: 6px; }
+  .bar { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; align-items: center; font-size: .82rem; }
+  .bar .track { grid-column: 1 / -1; height: 6px; border-radius: 99px; background: var(--bg2); overflow: hidden; margin-top: -2px; }
+  .bar .fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; }
+  .bar .n { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  details { border-top: 1px solid var(--border); padding: 10px 0 2px; }
+  details:first-of-type { margin-top: 10px; }
+  summary { cursor: pointer; list-style: none; display: flex; gap: 8px; align-items: baseline; font-size: .9rem; }
+  summary::-webkit-details-marker { display: none; }
+  summary code { font: 700 .75rem ui-monospace, monospace; color: var(--muted); flex: none; }
+  summary .sev { width: 8px; height: 8px; border-radius: 50%; flex: none; align-self: center; }
+  details p { margin: 6px 0 4px; font-size: .85rem; color: var(--muted); }
+  .stars { display: flex; gap: 2px; color: #f5b400; }
+  .stars svg { width: 18px; height: 18px; }
+  .rating-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-top: 1px solid var(--border); font-size: .9rem; }
+  .rating-row:first-of-type { border-top: 0; }
+  .theft { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; margin-top: 10px; }
+  .theft > svg { width: 26px; height: 26px; flex: none; margin-top: 2px; }
+  .theft b { display: block; }
+  .theft .note { margin-top: 2px; }
+  .theft.ok { background: color-mix(in srgb, var(--good) 10%, transparent); }
+  .theft.warn { background: color-mix(in srgb, var(--warn) 12%, transparent); }
+  .theft.bad { background: color-mix(in srgb, var(--bad) 12%, transparent); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 10px 14px; border-radius: 10px;
+         background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; border: 0; font-size: .9rem; cursor: pointer; }
+  .btn.ghost { background: var(--bg2); color: var(--fg); }
+  .row-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .soon-grid { display: grid; gap: 10px; }
+  .soon { display: flex; gap: 10px; align-items: flex-start; }
+  .soon b { font-size: .9rem; }
+  .err { background: color-mix(in srgb, var(--bad) 12%, var(--card)); color: var(--bad); font-weight: 600; }
+  .skel { height: 92px; border-radius: 16px; margin-bottom: 12px; background: linear-gradient(90deg, var(--card), var(--bg2), var(--card));
+          background-size: 200% 100%; animation: sh 1.2s linear infinite; border: 1px solid var(--border); }
+  @keyframes sh { to { background-position: -200% 0; } }
+  .empty { text-align: center; padding: 28px 16px; color: var(--muted); }
+  .empty svg { width: 64px; height: 64px; opacity: .5; }
+  footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 20px; }
+  @media (max-width: 420px) { .stats { grid-template-columns: repeat(2, 1fr); } .gauge { width: 88px; height: 88px; } }
 </style>
 </head>
 <body>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ffd54a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14l-1.5-6.5A2 2 0 0 0 15.6 9H8.4a2 2 0 0 0-1.9 1.5Z"/><circle cx="7.5" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/><path d="M12 3v3M4.5 5.5l2 2M19.5 5.5l-2 2"/></svg>
+      VinTrace
+    </div>
+    <p class="tag">Free vehicle history from official US government data.</p>
+    <form id="f" autocomplete="off">
+      <input id="vin" maxlength="17" placeholder="Enter 17-character VIN" value="1HGCM82633A004352" aria-label="VIN" spellcheck="false" autocapitalize="characters">
+      <button class="go" id="go" type="submit">Check</button>
+    </form>
+    <div class="recent" id="recent"></div>
+  </div>
+</header>
+
 <main>
-  <h1>Vehicle History Prototype</h1>
-  <p class="sub">Free NHTSA data only. Sections that need licensed data are marked as stubs.</p>
-
-  <form id="f">
-    <input id="vin" maxlength="17" placeholder="17-character VIN" value="1HGCM82633A004352" aria-label="VIN">
-    <button id="go" type="submit">Check</button>
-  </form>
-
-  <div id="out"></div>
+  <div id="out">
+    <div class="card empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6M7 17h4"/></svg>
+      <p>Enter a VIN to get a report. The VIN is on the driver-side dashboard, the door jamb, or the registration card.</p>
+    </div>
+  </div>
+  <footer>Data: NHTSA vPIC, Recalls, Complaints &amp; NCAP. Stolen check via NICB VINCheck.</footer>
 </main>
 
 <script>
-const STUBS = [
-  ["STUB", "Title, salvage, odometer, liens", "Needs an NMVTIS reseller contract (VinAudit, CarsXE)."],
-  ["STUB", "Police-reported accidents", "Needs state DOT bulk crash data or LexisNexis BuyCrash."],
-  ["PARTIAL", "Unreported accidents", "No provider captures these fully. Planned mitigation: damage detection on listing photos."],
-  ["STUB", "Service and repair records", "Needs shop-software integrations (Tekmetric, Shopmonkey, Mitchell1)."],
-];
-const SAFETY = /AIR BAG|STEERING/i;
+const ICONS = {
+  recall: '<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/>',
+  star: '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1Z"/>',
+  doc: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/>',
+  crash: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  wrench: '<path d="M14.7 6.3a4 4 0 0 0 5 5L22 14l-8 8-2.3-2.3a4 4 0 0 0-5-5L2 10l8-8Z"/>',
+  eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/>',
+};
+const SAFETY = /AIR BAG|STEERING|BRAKE|FUEL|SEAT BELT|TIRE/i;
+const THEFT_WORDS = /\b(stolen|theft|thief|thieves|broke into|break-in|hot[- ]?wir)/i;
 
 const el = (tag, cls, text) => {
   const e = document.createElement(tag);
@@ -70,79 +164,245 @@ const el = (tag, cls, text) => {
   if (text != null) e.textContent = text;
   return e;
 };
+const svg = (name, color) => {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("fill", "none");
+  s.setAttribute("stroke", color || "currentColor"); s.setAttribute("stroke-width", "2");
+  s.setAttribute("stroke-linecap", "round"); s.setAttribute("stroke-linejoin", "round");
+  s.innerHTML = ICONS[name]; // static icon markup only, never user data
+  return s;
+};
 
-function section(status, title, note) {
-  const card = el("div", "card");
-  const row = el("div", "row");
-  row.append(el("strong", null, title), el("span", "badge " + status, status));
-  card.append(row);
-  if (note) card.append(el("p", "note", note));
-  return card;
+function card(icon, color, title, pill, pillCls) {
+  const c = el("section", "card");
+  const h = el("div", "head");
+  const i = el("div", "ico");
+  i.style.background = `color-mix(in srgb, ${color} 14%, transparent)`;
+  i.append(svg(icon, color));
+  h.append(i, el("h2", null, title));
+  if (pill) h.append(el("span", "pill " + pillCls, pill));
+  c.append(h);
+  return c;
 }
 
-function score(year, recalls) {
-  const age = new Date().getFullYear() - parseInt(year, 10);
+const getJSON = url => fetch(url).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
+const titleCase = s => (s || "").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+function score(year, recalls, complaints) {
+  const age = Math.max(0, new Date().getFullYear() - parseInt(year, 10));
   const safety = recalls.filter(r => SAFETY.test(r.Component)).length;
   let s = 100;
-  if (age > 0) s -= Math.min(age * 1.5, 40);
+  s -= Math.min(age * 1.5, 40);
   s -= Math.min(recalls.length, 20);
-  s -= safety * 5;
-  return { value: Math.max(s, 0), age, safety };
+  s -= Math.min(safety * 3, 25);
+  s -= Math.min(Math.floor(complaints / 100), 10);
+  return { value: Math.max(Math.round(s), 0), age, safety };
+}
+
+function gauge(value) {
+  const g = el("div", "gauge");
+  const color = value >= 70 ? "var(--good)" : value >= 40 ? "var(--warn)" : "var(--bad)";
+  const C = 2 * Math.PI * 42;
+  g.innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--bg2)" stroke-width="10"/>
+    <circle cx="50" cy="50" r="42" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round"
+      stroke-dasharray="${C}" stroke-dashoffset="${C}" style="transition:stroke-dashoffset 1s ease"/></svg>`;
+  const v = el("div", "val"); const inner = el("div");
+  inner.append(el("b", null, String(value)), el("small", null, "score"));
+  v.append(inner); g.append(v);
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+    g.querySelectorAll("circle")[1].style.strokeDashoffset = C * (1 - value / 100)));
+  return g;
+}
+
+function stars(n) {
+  const w = el("div", "stars");
+  const k = parseInt(n, 10);
+  if (!k) { w.append(el("span", "note", "Not rated")); w.style.color = "inherit"; return w; }
+  for (let i = 1; i <= 5; i++) {
+    const s = svg("star"); if (i <= k) s.setAttribute("fill", "currentColor"); else s.style.opacity = ".35";
+    w.append(s);
+  }
+  return w;
+}
+
+async function safetyRatings(v) {
+  try {
+    const list = await getJSON(`https://api.nhtsa.gov/SafetyRatings/modelyear/${encodeURIComponent(v.ModelYear)}/make/${encodeURIComponent(v.Make)}/model/${encodeURIComponent(v.Model)}`);
+    if (!list.Results || !list.Results.length) return null;
+    const doors = v.Doors ? `${v.Doors} DR` : "";
+    const pick = list.Results.find(r => doors && r.VehicleDescription.includes(doors)) || list.Results[0];
+    const d = await getJSON(`https://api.nhtsa.gov/SafetyRatings/VehicleId/${pick.VehicleId}`);
+    return d.Results && d.Results[0];
+  } catch { return null; }
 }
 
 async function run(vin) {
   const out = document.getElementById("out");
-  out.replaceChildren(el("p", "note", "Loading…"));
+  out.replaceChildren(...[1, 2, 3, 4].map(() => el("div", "skel")));
 
-  const dec = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${encodeURIComponent(vin)}?format=json`)
-    .then(r => r.json());
-  const v = dec.Results[0];
+  const v = (await getJSON(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${encodeURIComponent(vin)}?format=json`)).Results[0];
   if (!v.Make || !v.ModelYear) {
-    out.replaceChildren(el("p", "error", "Couldn't decode that VIN: " + (v.ErrorText || "unknown error")));
-    return;
+    const c = el("div", "card err", "Couldn't decode that VIN. " + (v.ErrorText || ""));
+    out.replaceChildren(c); return;
   }
-
-  const rec = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.Make)}&model=${encodeURIComponent(v.Model)}&modelYear=${encodeURIComponent(v.ModelYear)}`)
-    .then(r => r.json());
+  const q = `make=${encodeURIComponent(v.Make)}&model=${encodeURIComponent(v.Model)}&modelYear=${encodeURIComponent(v.ModelYear)}`;
+  const [rec, comp, ncap] = await Promise.all([
+    getJSON(`https://api.nhtsa.gov/recalls/recallsByVehicle?${q}`).catch(() => null),
+    getJSON(`https://api.nhtsa.gov/complaints/complaintsByVehicle?${q}`).catch(() => null),
+    safetyRatings(v),
+  ]);
   // "E" campaigns are aftermarket equipment recalls, not the vehicle itself
-  const recalls = (rec.results || []).filter(r => r.NHTSACampaignNumber.charAt(2) === "V");
+  const failed = [!rec && "recalls", !comp && "complaints"].filter(Boolean);
+  const recalls = ((rec && rec.results) || []).filter(r => r.NHTSACampaignNumber.charAt(2) === "V");
+  const complaints = (comp && comp.results) || [];
+  const s = score(v.ModelYear, recalls, complaints.length);
+  const cards = [];
 
-  const head = el("div", "card");
-  head.append(el("div", "vehicle", `${v.ModelYear} ${v.Make} ${v.Model}`));
-  head.append(el("p", "note", [v.BodyClass, v.EngineCylinders && `${v.EngineCylinders}-cyl`, v.EngineModel]
-    .filter(Boolean).join(" · ")));
+  // Vehicle + score
+  const vc = el("section", "card");
+  const top = el("div", "vehicle-card");
+  const info = el("div");
+  info.style.flex = "1";
+  info.append(el("div", "vname", `${v.ModelYear} ${titleCase(v.Make)} ${v.Model}${v.Trim ? " " + v.Trim : ""}`));
+  info.append(el("span", "vin-plate", vin));
+  top.append(info, gauge(s.value));
+  vc.append(top);
+  const specs = el("div", "specs");
+  [["Body", v.BodyClass], ["Engine", [v.DisplacementL && `${(+v.DisplacementL).toFixed(1)}L`, v.EngineCylinders && `${v.EngineCylinders}-cyl`, v.EngineModel].filter(Boolean).join(" ")],
+   ["Fuel", v.FuelTypePrimary], ["Drive", v.DriveType], ["Transmission", v.TransmissionStyle], ["Built in", [titleCase(v.PlantCity), v.PlantCountry && titleCase(v.PlantCountry)].filter(Boolean).join(", ")]]
+    .filter(([, x]) => x).forEach(([k, x]) => { const d = el("div", "spec"); d.append(el("b", null, k), el("span", null, x)); specs.append(d); });
+  vc.append(specs);
+  vc.append(el("p", "note", `Score: ${s.age} years old, ${recalls.length} recalls (${s.safety} safety-related), ${complaints.length} owner complaints. A rough risk signal, not a market value.`));
+  if (failed.length) vc.append(el("p", "note", `Couldn't load ${failed.join(" and ")} from NHTSA, so those show as zero. Try again in a minute.`));
+  cards.push(vc);
 
-  const rc = section("LIVE", `Recalls (${recalls.length})`,
-    "Matched by make, model and year, not VIN. Some may not apply to this exact car.");
-  if (recalls.length) {
-    const ul = el("ul");
-    for (const r of recalls) {
-      const li = el("li");
-      li.append(el("code", null, r.NHTSACampaignNumber), document.createTextNode(" " + r.Component));
-      ul.append(li);
-    }
-    rc.append(ul);
+  // Stolen check
+  const theftComplaints = complaints.filter(c => THEFT_WORDS.test(c.summary || ""));
+  const kiaHyundai = /^(KIA|HYUNDAI)$/i.test(v.Make) && +v.ModelYear >= 2011 && +v.ModelYear <= 2022;
+  const tc = card("lock", "var(--bad)", "Stolen vehicle check", "NICB", "p-link");
+  const status = el("div", "theft " + (kiaHyundai ? "bad" : theftComplaints.length ? "warn" : "ok"));
+  status.append(svg(kiaHyundai || theftComplaints.length ? "recall" : "shield", kiaHyundai ? "var(--bad)" : theftComplaints.length ? "var(--warn)" : "var(--good)"));
+  const st = el("div");
+  if (kiaHyundai) {
+    st.append(el("b", null, "High theft-risk model"));
+    st.append(el("p", "note", "Many 2011–2022 Kia and Hyundai models lack an engine immobilizer and are frequent theft targets. Confirm the free anti-theft software update was installed."));
+  } else {
+    st.append(el("b", null, theftComplaints.length ? `${theftComplaints.length} theft-related owner reports for this model` : "No theft pattern reported for this model"));
+    st.append(el("p", "note", "Model-level signal from NHTSA complaints. It does not tell you whether this exact car is stolen."));
   }
+  status.append(st); tc.append(status);
+  tc.append(el("p", "note", "To check whether this exact VIN is reported stolen, use the free NICB VINCheck (official insurance-industry database, up to 5 checks a day). Your VIN is copied when you tap the button."));
+  const rb = el("div", "row-btns");
+  const nicb = el("a", "btn", "Check VIN on NICB");
+  nicb.href = "https://www.nicb.org/vincheck"; nicb.target = "_blank"; nicb.rel = "noopener";
+  nicb.addEventListener("click", () => { try { navigator.clipboard.writeText(vin).catch(() => {}); } catch {} });
+  rb.append(nicb); tc.append(rb);
+  tc.append(el("p", "note", "If your own car was stolen, report it to local police first. They enter it into the national stolen-vehicle database (NCIC)."));
+  cards.push(tc);
 
-  const s = score(v.ModelYear, recalls);
-  const sc = section("LIVE", "Condition score",
-    `Age ${s.age} yrs, ${recalls.length} recalls, ${s.safety} safety-critical. A rough signal, not a market value.`);
-  sc.append(el("div", "score", `${s.value.toFixed(1)} / 100`));
+  // Recalls
+  const rc = card("recall", "var(--warn)", `Recalls (${recalls.length})`, "LIVE", "p-live");
+  rc.append(el("p", "note", "Matched by make, model and year. Some may not apply to this exact car. Check which are still open for this VIN on NHTSA."));
+  const parkIt = recalls.filter(r => r.parkIt || r.parkOutSide);
+  if (parkIt.length) {
+    const w = el("div", "theft bad"); w.append(svg("recall", "var(--bad)"));
+    const t = el("div"); t.append(el("b", null, `${parkIt.length} "do not drive" or "park outside" recall${parkIt.length > 1 ? "s" : ""}`),
+      el("p", "note", "NHTSA says owners should not drive or should park outside until fixed."));
+    w.append(t); rc.append(w);
+  }
+  const open = el("a", "btn ghost", "Check open recalls for this VIN");
+  open.href = "https://www.nhtsa.gov/recalls?vin=" + encodeURIComponent(vin); open.target = "_blank"; open.rel = "noopener";
+  rc.append(open);
+  for (const r of recalls) {
+    const d = el("details"); const sm = el("summary");
+    const dot = el("span", "sev"); dot.style.background = SAFETY.test(r.Component) ? "var(--bad)" : "var(--warn)";
+    sm.append(dot, el("code", null, r.NHTSACampaignNumber), el("span", null, titleCase(r.Component)));
+    d.append(sm, el("p", null, r.Summary), el("p", null, "Fix: " + (r.Remedy || "See dealer.")));
+    rc.append(d);
+  }
+  cards.push(rc);
 
-  out.replaceChildren(head, rc, sc, ...STUBS.map(a => section(...a)));
+  // Complaints
+  const cc = card("chat", "var(--accent)", "Owner complaints", "LIVE", "p-live");
+  const sum = k => complaints.reduce((a, c) => a + (typeof c[k] === "boolean" ? +c[k] : (c[k] || 0)), 0);
+  const stats = el("div", "stats");
+  [["Complaints", complaints.length], ["Crashes", sum("crash")], ["Fires", sum("fire")], ["Injuries", sum("numberOfInjuries")]]
+    .forEach(([k, n]) => { const d = el("div", "stat"); d.append(el("b", null, n.toLocaleString()), el("span", null, k)); stats.append(d); });
+  cc.append(stats);
+  const counts = {};
+  complaints.forEach(c => (c.components || "").split(",").forEach(p => { p = p.trim(); if (p) counts[p] = (counts[p] || 0) + 1; }));
+  const topC = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (topC.length) {
+    const bars = el("div", "bars"); const max = topC[0][1];
+    topC.forEach(([k, n]) => {
+      const b = el("div", "bar"); const t = el("div", "track"); const f = el("div", "fill");
+      f.style.width = (n / max * 100) + "%"; t.append(f);
+      b.append(el("span", null, titleCase(k)), el("span", "n", n), t); bars.append(b);
+    });
+    cc.append(el("p", "note", "Most-reported problem areas:"), bars);
+  }
+  cards.push(cc);
+
+  // Crash ratings
+  const rated = ncap && [ncap.OverallRating, ncap.OverallFrontCrashRating, ncap.OverallSideCrashRating, ncap.RolloverRating].some(x => parseInt(x, 10));
+  const nc = card("star", "#f5b400", "Crash-test ratings", rated ? "LIVE" : null, "p-live");
+  if (rated) {
+    nc.append(el("p", "note", ncap.VehicleDescription));
+    const box = el("div"); box.style.marginTop = "8px";
+    [["Overall", ncap.OverallRating], ["Frontal crash", ncap.OverallFrontCrashRating], ["Side crash", ncap.OverallSideCrashRating], ["Rollover", ncap.RolloverRating]]
+      .forEach(([k, n]) => { const r = el("div", "rating-row"); r.append(el("span", null, k), stars(n)); box.append(r); });
+    nc.append(box);
+  } else {
+    nc.append(el("p", "note", "NHTSA has no 5-star crash test for this model year."));
+  }
+  cards.push(nc);
+
+  // Coming soon
+  const sc = card("doc", "var(--muted)", "Coming with paid data", "SOON", "p-soon");
+  const grid = el("div", "soon-grid");
+  [["doc", "Title, salvage, odometer & liens", "Federal NMVTIS title database via a licensed reseller."],
+   ["crash", "Police-reported accidents", "State crash records or LexisNexis BuyCrash."],
+   ["wrench", "Service & repair records", "Repair-shop software partners."],
+   ["eye", "Unreported damage", "AI damage detection on listing photos."]]
+    .forEach(([i, t, n]) => { const r = el("div", "soon"); const ic = el("div", "ico"); ic.style.background = "var(--bg2)"; ic.append(svg(i, "var(--muted)"));
+      const tx = el("div"); tx.append(el("b", null, t), el("p", "note", n)); tx.lastChild.style.marginTop = "0"; r.append(ic, tx); grid.append(r); });
+  sc.append(grid);
+  cards.push(sc);
+
+  cards.forEach((c, i) => c.style.animationDelay = (i * 60) + "ms");
+  out.replaceChildren(...cards);
+  saveRecent(vin, `${v.ModelYear} ${titleCase(v.Make)} ${v.Model}`);
 }
+
+function loadRecent() { try { return JSON.parse(localStorage.getItem("recent") || "[]"); } catch { return []; } }
+function saveRecent(vin, label) {
+  const list = [{ vin, label }, ...loadRecent().filter(x => x.vin !== vin)].slice(0, 5);
+  try { localStorage.setItem("recent", JSON.stringify(list)); } catch {}
+  renderRecent();
+}
+function renderRecent() {
+  const box = document.getElementById("recent");
+  box.replaceChildren(...loadRecent().map(x => {
+    const c = el("button", "chip", x.label); c.type = "button"; c.title = x.vin;
+    c.addEventListener("click", () => { document.getElementById("vin").value = x.vin; document.getElementById("f").requestSubmit(); });
+    return c;
+  }));
+}
+renderRecent();
 
 document.getElementById("f").addEventListener("submit", async e => {
   e.preventDefault();
-  const vin = document.getElementById("vin").value.trim().toUpperCase();
+  const input = document.getElementById("vin");
+  const vin = input.value.trim().toUpperCase();
   const btn = document.getElementById("go");
   if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) {
-    document.getElementById("out").replaceChildren(el("p", "error", "A VIN is 17 letters and digits (no I, O or Q)."));
+    document.getElementById("out").replaceChildren(el("div", "card err", "A VIN is 17 letters and digits (no I, O or Q)."));
     return;
   }
+  input.blur();
   btn.disabled = true;
   try { await run(vin); }
-  catch (err) { document.getElementById("out").replaceChildren(el("p", "error", "Request failed: " + err.message)); }
+  catch (err) { document.getElementById("out").replaceChildren(el("div", "card err", "Couldn't reach NHTSA. Check your connection and try again. (" + err.message + ")")); }
   finally { btn.disabled = false; }
 });
 </script>
