@@ -41,6 +41,7 @@
   input { flex: 1; min-width: 0; padding: 12px; font: 600 1rem ui-monospace, "Roboto Mono", monospace; letter-spacing: .08em;
           text-transform: uppercase; border: 0; border-radius: 10px; background: #fff; color: #121726; }
   input:focus { outline: 3px solid #ffd54a; }
+  input::placeholder { text-transform: none; letter-spacing: 0; font-family: system-ui, sans-serif; font-weight: 500; }
   button.go { padding: 12px 18px; font: 700 1rem inherit; font-family: inherit; border: 0; border-radius: 10px;
               background: #ffd54a; color: #1b1b1b; cursor: pointer; }
   button.go:disabled { opacity: .6; }
@@ -114,6 +115,47 @@
   .empty { text-align: center; padding: 28px 16px; color: var(--muted); }
   .empty svg { width: 64px; height: 64px; opacity: .5; }
   footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 20px; }
+  .brand { justify-content: space-between; }
+  .brand > span { display: flex; align-items: center; gap: 10px; }
+  .icon-btn { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.2); color: #fff; width: 40px; height: 40px;
+              border-radius: 12px; display: grid; place-items: center; cursor: pointer; padding: 0; }
+  .icon-btn svg { width: 20px; height: 20px; }
+  form .scan { flex: none; width: 46px; border: 0; border-radius: 10px; background: rgba(255,255,255,.18); color: #fff;
+               display: grid; place-items: center; cursor: pointer; padding: 0; }
+  form .scan svg { width: 22px; height: 22px; }
+  .overlay { position: fixed; inset: 0; background: #000; z-index: 50; display: none; flex-direction: column; }
+  .overlay.on { display: flex; }
+  .overlay video { flex: 1; width: 100%; object-fit: cover; min-height: 0; }
+  .scan-frame { position: absolute; left: 8%; right: 8%; top: 38%; height: 18%; border: 3px solid #ffd54a; border-radius: 14px;
+                box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); pointer-events: none; }
+  .scan-bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+              display: flex; gap: 10px; align-items: center; justify-content: space-between; color: #fff;
+              background: linear-gradient(transparent, rgba(0,0,0,.8)); }
+  .scan-bar p { margin: 0; font-size: .9rem; }
+  dialog { border: 1px solid var(--border); border-radius: 16px; background: var(--card); color: var(--fg); padding: 18px;
+           width: min(440px, calc(100vw - 32px)); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(5,8,20,.6); }
+  dialog h3 { margin: 0 0 6px; }
+  dialog input { width: 100%; border: 1px solid var(--border); background: var(--bg2); color: var(--fg); letter-spacing: 0;
+                 text-transform: none; font: .9rem ui-monospace, monospace; margin-top: 10px; }
+  .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+           background: #111a33; color: #fff; padding: 10px 16px; border-radius: 99px; font-size: .9rem; opacity: 0;
+           transition: .25s; z-index: 60; pointer-events: none; max-width: calc(100vw - 32px); }
+  .toast.on { opacity: 1; transform: translateX(-50%); }
+  .ai-text { white-space: pre-wrap; margin: 8px 0 0; }
+  .p-ai { background: color-mix(in srgb, var(--accent2) 16%, transparent); color: var(--accent2); }
+  .banner { display: flex; gap: 8px; align-items: center; font-size: .85rem; padding: 10px 12px; border-radius: 12px; margin-bottom: 12px;
+            background: color-mix(in srgb, var(--info) 12%, var(--card)); border: 1px solid var(--border); }
+  .banner svg { width: 18px; height: 18px; flex: none; }
+  .banner button { margin-left: auto; }
+  .saved-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); cursor: pointer; }
+  .saved-item:first-of-type { border-top: 0; }
+  .saved-item .meta { flex: 1; min-width: 0; }
+  .saved-item .meta b { display: block; }
+  .saved-item .meta small { color: var(--muted); font: .75rem ui-monospace, monospace; }
+  .mini-score { font-weight: 800; font-size: .9rem; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+  .del { background: none; border: 0; color: var(--muted); font-size: 1.3rem; cursor: pointer; padding: 4px 8px; }
+  .link-btn { background: none; border: 0; color: var(--accent); font: 600 .85rem inherit; font-family: inherit; cursor: pointer; padding: 0; }
   .print-head { display: none; }
   .btn svg { width: 16px; height: 16px; }
   @media print {
@@ -123,7 +165,7 @@
     }
     @page { margin: 14mm; }
     body { font-size: 11pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .hero, .btn, .row-btns, .skel { display: none !important; }
+    .hero, .btn, .row-btns, .skel, .banner, .toast, .overlay, .link-btn { display: none !important; }
     main { margin: 0; padding: 0; max-width: none; }
     .print-head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #111;
                   padding-bottom: 8px; margin-bottom: 14px; }
@@ -141,12 +183,16 @@
 <header class="hero">
   <div class="hero-inner">
     <div class="brand">
+      <span>
       <svg viewBox="0 0 24 24" fill="none" stroke="#ffd54a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14l-1.5-6.5A2 2 0 0 0 15.6 9H8.4a2 2 0 0 0-1.9 1.5Z"/><circle cx="7.5" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/><path d="M12 3v3M4.5 5.5l2 2M19.5 5.5l-2 2"/></svg>
       VinTrace
+      </span>
+      <button class="icon-btn" id="settings-btn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
     </div>
     <p class="tag">Free vehicle history from official US government data.</p>
     <form id="f" autocomplete="off">
-      <input id="vin" maxlength="17" placeholder="Enter 17-character VIN" value="1HGCM82633A004352" aria-label="VIN" spellcheck="false" autocapitalize="characters">
+      <input id="vin" maxlength="17" placeholder="Enter or scan a VIN" aria-label="VIN" spellcheck="false" autocapitalize="characters">
+      <button class="scan" id="scan-btn" type="button" aria-label="Scan VIN barcode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg></button>
       <button class="go" id="go" type="submit">Check</button>
     </form>
     <div class="recent" id="recent"></div>
@@ -155,14 +201,30 @@
 
 <main>
   <div class="print-head" id="print-head"></div>
-  <div id="out">
-    <div class="card empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6M7 17h4"/></svg>
-      <p>Enter a VIN to get a report. The VIN is on the driver-side dashboard, the door jamb, or the registration card.</p>
-    </div>
-  </div>
+  <div id="out"></div>
   <footer>Data: NHTSA vPIC, Recalls, Complaints &amp; NCAP. Stolen check via NICB VINCheck.</footer>
 </main>
+
+<div class="overlay" id="scanner">
+  <video id="video" playsinline muted></video>
+  <div class="scan-frame"></div>
+  <div class="scan-bar"><p id="scan-msg">Point at the VIN barcode on the door jamb or windshield.</p>
+    <button class="btn ghost" id="scan-close" type="button" style="margin:0">Cancel</button></div>
+</div>
+
+<dialog id="settings">
+  <h3>AI summary</h3>
+  <p class="note">Paste an Anthropic API key to get an AI-written summary on each report. The key is stored only on this device and sent only to Anthropic. Each summary costs about 2 cents. Get a key at console.anthropic.com.</p>
+  <input id="api-key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+  <div class="row-btns">
+    <button class="btn" id="key-save" type="button">Save</button>
+    <button class="btn ghost" id="key-clear" type="button">Remove key</button>
+    <button class="btn ghost" id="settings-close" type="button">Close</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+<script src="vendor/zxing.min.js" defer></script>
 
 <script>
 const ICONS = {
@@ -207,26 +269,146 @@ function card(icon, color, title, pill, pillCls) {
   return c;
 }
 
+Object.assign(ICONS, {
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
+  spark: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9Z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8Z"/>',
+  offline: '<path d="M2 2l20 20"/><path d="M8.5 16.5a5 5 0 0 1 7 0M5 12.9a10 10 0 0 1 5.2-2.8M19 12.9a10 10 0 0 0-2-1.4M2 8.8a15 15 0 0 1 4.2-2.6M22 8.8a15 15 0 0 0-11.2-3.8"/><circle cx="12" cy="20" r="1"/>',
+  history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 3"/>',
+});
+
+const SITE = "https://nucash-mining.github.io/vehicle-history-prototype/";
+const SDK_URL = "https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.131.0/+esm";
+const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/;
+const native = window.Native; // set by the Android app
+
 const getJSON = url => fetch(url).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
 const titleCase = s => (s || "").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+const carName = r => `${r.v.ModelYear} ${titleCase(r.v.Make)} ${r.v.Model}`;
 
-function score(year, recalls, complaints) {
-  const age = Math.max(0, new Date().getFullYear() - parseInt(year, 10));
-  const safety = recalls.filter(r => SAFETY.test(r.Component)).length;
-  let s = 100;
-  s -= Math.min(age * 1.5, 40);
-  s -= Math.min(recalls.length, 20);
-  s -= Math.min(safety * 3, 25);
-  s -= Math.min(Math.floor(complaints / 100), 10);
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove("on"), 2600);
+}
+
+/* ---------- Data ---------- */
+
+async function safetyRatings(v) {
+  try {
+    const list = await getJSON(`https://api.nhtsa.gov/SafetyRatings/modelyear/${encodeURIComponent(v.ModelYear)}/make/${encodeURIComponent(v.Make)}/model/${encodeURIComponent(v.Model)}`);
+    if (!list.Results || !list.Results.length) return null;
+    const doors = v.Doors ? `${v.Doors} DR` : "";
+    const pick = list.Results.find(r => doors && r.VehicleDescription.includes(doors)) || list.Results[0];
+    const d = (await getJSON(`https://api.nhtsa.gov/SafetyRatings/VehicleId/${pick.VehicleId}`)).Results[0];
+    return d && { desc: d.VehicleDescription, overall: d.OverallRating, front: d.OverallFrontCrashRating,
+                  side: d.OverallSideCrashRating, rollover: d.RolloverRating };
+  } catch { return null; }
+}
+
+// Fetches everything and boils it down to a small object that fits in local storage
+async function fetchReport(vin) {
+  const raw = (await getJSON(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${encodeURIComponent(vin)}?format=json`)).Results[0];
+  if (!raw.Make || !raw.ModelYear) { const e = new Error(raw.ErrorText || "Couldn't decode that VIN."); e.decode = true; throw e; }
+  const keep = ["ModelYear", "Make", "Model", "Trim", "BodyClass", "DisplacementL", "EngineCylinders", "EngineModel",
+                "FuelTypePrimary", "DriveType", "TransmissionStyle", "PlantCity", "PlantCountry", "Doors"];
+  const v = Object.fromEntries(keep.map(k => [k, raw[k] || ""]));
+  if (v.Trim.length > 18 || v.Trim.includes("/")) v.Trim = ""; // some decodes list every possible trim
+  const q = `make=${encodeURIComponent(v.Make)}&model=${encodeURIComponent(v.Model)}&modelYear=${encodeURIComponent(v.ModelYear)}`;
+  const [rec, comp, ncap] = await Promise.all([
+    getJSON(`https://api.nhtsa.gov/recalls/recallsByVehicle?${q}`).catch(() => null),
+    getJSON(`https://api.nhtsa.gov/complaints/complaintsByVehicle?${q}`).catch(() => null),
+    safetyRatings(v),
+  ]);
+  const recalls = ((rec && rec.results) || [])
+    // "E" campaigns are aftermarket equipment recalls, not the vehicle itself
+    .filter(r => r.NHTSACampaignNumber.charAt(2) === "V")
+    .map(r => ({ id: r.NHTSACampaignNumber, component: r.Component, summary: r.Summary, remedy: r.Remedy,
+                 parkIt: !!(r.parkIt || r.parkOutSide) }));
+  const list = (comp && comp.results) || [];
+  const counts = {};
+  list.forEach(c => (c.components || "").split(",").forEach(p => { p = p.trim(); if (p) counts[p] = (counts[p] || 0) + 1; }));
+  const total = k => list.reduce((a, c) => a + (+c[k] || 0), 0);
+  return {
+    vin, v, recalls, ncap, fetchedAt: Date.now(),
+    failed: [!rec && "recalls", !comp && "complaints"].filter(Boolean),
+    complaints: {
+      total: list.length, crash: total("crash"), fire: total("fire"), injuries: total("numberOfInjuries"), deaths: total("numberOfDeaths"),
+      top: Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6),
+      theft: list.filter(c => THEFT_WORDS.test(c.summary || "")).length,
+    },
+  };
+}
+
+function scoreOf(r) {
+  const age = Math.max(0, new Date().getFullYear() - parseInt(r.v.ModelYear, 10));
+  const safety = r.recalls.filter(x => SAFETY.test(x.component)).length;
+  let s = 100 - Math.min(age * 1.5, 40) - Math.min(r.recalls.length, 20) - Math.min(safety * 3, 25)
+        - Math.min(Math.floor(r.complaints.total / 100), 10);
   return { value: Math.max(Math.round(s), 0), age, safety };
 }
+const scoreColor = n => n >= 70 ? "var(--good)" : n >= 40 ? "var(--warn)" : "var(--bad)";
+const theftRisk = r => /^(KIA|HYUNDAI)$/i.test(r.v.Make) && +r.v.ModelYear >= 2011 && +r.v.ModelYear <= 2022;
+
+/* ---------- Saved reports (this device only) ---------- */
+
+const store = {
+  all() { try { return JSON.parse(localStorage.getItem("reports") || "{}"); } catch { return {}; } },
+  put(r) {
+    const all = this.all(); all[r.vin] = r;
+    const keep = Object.values(all).sort((a, b) => b.fetchedAt - a.fetchedAt).slice(0, 25);
+    try { localStorage.setItem("reports", JSON.stringify(Object.fromEntries(keep.map(x => [x.vin, x])))); }
+    catch { toast("Phone storage is full. Delete some saved reports."); }
+  },
+  get(vin) { return this.all()[vin]; },
+  del(vin) { const all = this.all(); delete all[vin]; try { localStorage.setItem("reports", JSON.stringify(all)); } catch {} },
+  list() { return Object.values(this.all()).sort((a, b) => b.fetchedAt - a.fetchedAt); },
+};
+
+/* ---------- Summaries ---------- */
+
+// Plain rule-based summary, always available (no key, no network)
+function quickSummary(r) {
+  const s = scoreOf(r), c = r.complaints, out = [];
+  out.push(`This ${carName(r)} is ${s.age} years old and scores ${s.value}/100.`);
+  if (r.recalls.length) out.push(`It has ${r.recalls.length} recall${r.recalls.length > 1 ? "s" : ""} for its model year${s.safety ? `, ${s.safety} of them safety-related` : ""}. Ask the seller for proof they were fixed.`);
+  else out.push("No vehicle recalls are on file for this model year.");
+  if (c.total) out.push(`Owners filed ${c.total.toLocaleString()} complaints, most often about ${c.top.slice(0, 2).map(t => titleCase(t[0])).join(" and ")}.`);
+  if (theftRisk(r)) out.push("This is a high theft-risk model; check that the anti-theft software update was done.");
+  out.push("Run the NICB stolen check before paying.");
+  return out.join(" ");
+}
+
+async function aiSummary(r) {
+  const apiKey = localStorage.getItem("anthropicKey");
+  const { default: Anthropic } = await import(SDK_URL);
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const facts = { vehicle: r.v, score: scoreOf(r), recalls: r.recalls.map(x => ({ id: x.id, component: x.component, summary: x.summary, parkIt: x.parkIt })),
+                  complaints: r.complaints, crashRatings: r.ncap, highTheftRiskModel: theftRisk(r) };
+  const res = await client.beta.messages.create({
+    model: "claude-opus-5-5",
+    max_tokens: 4000,
+    output_config: { effort: "low" },
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: "You summarize free US government vehicle data for someone thinking about buying a used car. " +
+      "Write 3-4 short plain-English sentences on what matters most, then a line 'Before you buy:' and 2-3 short lines starting with '- '. " +
+      "Use only the data given. Recalls and complaints are for the model year, not this exact car. " +
+      "The data has no title, accident, odometer or stolen records, so never say the car is clean or not stolen. No markdown other than '- '.",
+    messages: [{ role: "user", content: JSON.stringify(facts) }],
+  });
+  if (res.stop_reason === "refusal") throw new Error("The AI declined to summarize this report.");
+  const text = res.content.filter(b => b.type === "text").map(b => b.text).join("").trim();
+  if (!text) throw new Error("Empty response");
+  return text;
+}
+
+/* ---------- Rendering ---------- */
 
 function gauge(value) {
   const g = el("div", "gauge");
-  const color = value >= 70 ? "var(--good)" : value >= 40 ? "var(--warn)" : "var(--bad)";
   const C = 2 * Math.PI * 42;
   g.innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--bg2)" stroke-width="10"/>
-    <circle cx="50" cy="50" r="42" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round"
+    <circle cx="50" cy="50" r="42" fill="none" stroke="${scoreColor(value)}" stroke-width="10" stroke-linecap="round"
       stroke-dasharray="${C}" stroke-dashoffset="${C}" style="transition:stroke-dashoffset 1s ease"/></svg>`;
   const v = el("div", "val"); const inner = el("div");
   inner.append(el("b", null, String(value)), el("small", null, "score"));
@@ -247,46 +429,56 @@ function stars(n) {
   return w;
 }
 
-async function safetyRatings(v) {
-  try {
-    const list = await getJSON(`https://api.nhtsa.gov/SafetyRatings/modelyear/${encodeURIComponent(v.ModelYear)}/make/${encodeURIComponent(v.Make)}/model/${encodeURIComponent(v.Model)}`);
-    if (!list.Results || !list.Results.length) return null;
-    const doors = v.Doors ? `${v.Doors} DR` : "";
-    const pick = list.Results.find(r => doors && r.VehicleDescription.includes(doors)) || list.Results[0];
-    const d = await getJSON(`https://api.nhtsa.gov/SafetyRatings/VehicleId/${pick.VehicleId}`);
-    return d.Results && d.Results[0];
-  } catch { return null; }
+function iconButton(icon, label, cls, onClick) {
+  const b = el("button", "btn " + (cls || "")); b.type = "button";
+  b.append(svg(icon), document.createTextNode(label));
+  b.addEventListener("click", onClick);
+  return b;
 }
 
-async function run(vin) {
-  const out = document.getElementById("out");
-  out.replaceChildren(...[1, 2, 3, 4].map(() => el("div", "skel")));
-
-  const v = (await getJSON(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${encodeURIComponent(vin)}?format=json`)).Results[0];
-  if (!v.Make || !v.ModelYear) {
-    const c = el("div", "card err", "Couldn't decode that VIN. " + (v.ErrorText || ""));
-    out.replaceChildren(c); return;
+function renderSummary(r, box) {
+  const hasKey = !!localStorage.getItem("anthropicKey");
+  const sc = card("spark", "var(--accent2)", r.ai ? "AI summary" : "Summary", r.ai ? "AI" : null, "p-ai");
+  const p = el("p", "ai-text", r.ai || quickSummary(r));
+  sc.append(p);
+  if (!r.ai) {
+    if (hasKey && navigator.onLine !== false) {
+      p.after(el("p", "note", "Writing AI summary…"));
+      aiSummary(r).then(text => {
+        r.ai = text; store.put(r);
+        if (document.body.contains(sc)) sc.replaceWith(renderSummary(r));
+      }).catch(err => {
+        const n = sc.querySelector(".note"); if (!n) return;
+        n.textContent = err.status === 401 ? "AI summary failed: your API key was rejected. Check it in Settings."
+          : err.status === 429 ? "AI summary failed: rate limited or out of credit. Try again later."
+          : "AI summary failed. Showing the quick summary instead.";
+      });
+    } else if (!hasKey) {
+      const b = el("button", "link-btn", "Add an API key for an AI-written summary");
+      b.type = "button"; b.addEventListener("click", openSettings);
+      sc.append(el("p", "note"), b);
+    }
   }
-  const q = `make=${encodeURIComponent(v.Make)}&model=${encodeURIComponent(v.Model)}&modelYear=${encodeURIComponent(v.ModelYear)}`;
-  const [rec, comp, ncap] = await Promise.all([
-    getJSON(`https://api.nhtsa.gov/recalls/recallsByVehicle?${q}`).catch(() => null),
-    getJSON(`https://api.nhtsa.gov/complaints/complaintsByVehicle?${q}`).catch(() => null),
-    safetyRatings(v),
-  ]);
-  // "E" campaigns are aftermarket equipment recalls, not the vehicle itself
-  const failed = [!rec && "recalls", !comp && "complaints"].filter(Boolean);
-  const recalls = ((rec && rec.results) || []).filter(r => r.NHTSACampaignNumber.charAt(2) === "V");
-  const complaints = (comp && comp.results) || [];
-  const s = score(v.ModelYear, recalls, complaints.length);
-  const cards = [];
+  return sc;
+}
+
+function renderReport(r, cached) {
+  const out = document.getElementById("out");
+  const s = scoreOf(r), v = r.v, vin = r.vin, cards = [];
+
+  if (cached) {
+    const b = el("div", "banner"); b.append(svg("offline"));
+    b.append(el("span", null, `Saved copy from ${new Date(r.fetchedAt).toLocaleDateString()}${cached === "offline" ? " (you're offline)" : ""}`));
+    const rf = el("button", "link-btn", "Refresh"); rf.type = "button";
+    rf.addEventListener("click", () => lookup(vin, { fresh: true }));
+    b.append(rf); cards.push(b);
+  }
 
   // Vehicle + score
   const vc = el("section", "card");
   const top = el("div", "vehicle-card");
-  const info = el("div");
-  info.style.flex = "1";
-  info.append(el("div", "vname", `${v.ModelYear} ${titleCase(v.Make)} ${v.Model}${v.Trim ? " " + v.Trim : ""}`));
-  info.append(el("span", "vin-plate", vin));
+  const info = el("div"); info.style.flex = "1";
+  info.append(el("div", "vname", `${carName(r)}${v.Trim ? " " + v.Trim : ""}`), el("span", "vin-plate", vin));
   top.append(info, gauge(s.value));
   vc.append(top);
   const specs = el("div", "specs");
@@ -294,42 +486,42 @@ async function run(vin) {
    ["Fuel", v.FuelTypePrimary], ["Drive", v.DriveType], ["Transmission", v.TransmissionStyle], ["Built in", [titleCase(v.PlantCity), v.PlantCountry && titleCase(v.PlantCountry)].filter(Boolean).join(", ")]]
     .filter(([, x]) => x).forEach(([k, x]) => { const d = el("div", "spec"); d.append(el("b", null, k), el("span", null, x)); specs.append(d); });
   vc.append(specs);
-  vc.append(el("p", "note", `Score: ${s.age} years old, ${recalls.length} recalls (${s.safety} safety-related), ${complaints.length} owner complaints. A rough risk signal, not a market value.`));
-  if (failed.length) vc.append(el("p", "note", `Couldn't load ${failed.join(" and ")} from NHTSA, so those show as zero. Try again in a minute.`));
-  const pb = el("button", "btn ghost"); pb.type = "button";
-  pb.append(svg("print"), document.createTextNode("Print report"));
-  pb.addEventListener("click", printReport);
-  vc.append(pb);
+  vc.append(el("p", "note", `Score: ${s.age} years old, ${r.recalls.length} recalls (${s.safety} safety-related), ${r.complaints.total.toLocaleString()} owner complaints. A rough risk signal, not a market value.`));
+  if (r.failed.length) vc.append(el("p", "note", `Couldn't load ${r.failed.join(" and ")} from NHTSA, so those show as zero. Tap Refresh to try again.`));
+  const acts = el("div", "row-btns");
+  acts.append(iconButton("share", "Share", "", () => shareReport(r)), iconButton("print", "Print", "ghost", printReport));
+  vc.append(acts);
   cards.push(vc);
 
+  cards.push(renderSummary(r));
+
   // Stolen check
-  const theftComplaints = complaints.filter(c => THEFT_WORDS.test(c.summary || ""));
-  const kiaHyundai = /^(KIA|HYUNDAI)$/i.test(v.Make) && +v.ModelYear >= 2011 && +v.ModelYear <= 2022;
+  const kh = theftRisk(r), theft = r.complaints.theft;
   const tc = card("lock", "var(--bad)", "Stolen vehicle check", "NICB", "p-link");
-  const status = el("div", "theft " + (kiaHyundai ? "bad" : theftComplaints.length ? "warn" : "ok"));
-  status.append(svg(kiaHyundai || theftComplaints.length ? "recall" : "shield", kiaHyundai ? "var(--bad)" : theftComplaints.length ? "var(--warn)" : "var(--good)"));
+  const status = el("div", "theft " + (kh ? "bad" : theft ? "warn" : "ok"));
+  status.append(svg(kh || theft ? "recall" : "shield", kh ? "var(--bad)" : theft ? "var(--warn)" : "var(--good)"));
   const st = el("div");
-  if (kiaHyundai) {
-    st.append(el("b", null, "High theft-risk model"));
-    st.append(el("p", "note", "Many 2011–2022 Kia and Hyundai models lack an engine immobilizer and are frequent theft targets. Confirm the free anti-theft software update was installed."));
+  if (kh) {
+    st.append(el("b", null, "High theft-risk model"),
+      el("p", "note", "Many 2011–2022 Kia and Hyundai models lack an engine immobilizer and are frequent theft targets. Confirm the free anti-theft software update was installed."));
   } else {
-    st.append(el("b", null, theftComplaints.length ? `${theftComplaints.length} theft-related owner reports for this model` : "No theft pattern reported for this model"));
-    st.append(el("p", "note", "Model-level signal from NHTSA complaints. It does not tell you whether this exact car is stolen."));
+    st.append(el("b", null, theft ? `${theft} theft-related owner reports for this model` : "No theft pattern reported for this model"),
+      el("p", "note", "Model-level signal from NHTSA complaints. It does not tell you whether this exact car is stolen."));
   }
   status.append(st); tc.append(status);
   tc.append(el("p", "note", "To check whether this exact VIN is reported stolen, use the free NICB VINCheck (official insurance-industry database, up to 5 checks a day). Your VIN is copied when you tap the button."));
   const rb = el("div", "row-btns");
   const nicb = el("a", "btn", "Check VIN on NICB");
   nicb.href = "https://www.nicb.org/vincheck"; nicb.target = "_blank"; nicb.rel = "noopener";
-  nicb.addEventListener("click", () => { try { navigator.clipboard.writeText(vin).catch(() => {}); } catch {} });
+  nicb.addEventListener("click", () => copyText(vin));
   rb.append(nicb); tc.append(rb);
   tc.append(el("p", "note", "If your own car was stolen, report it to local police first. They enter it into the national stolen-vehicle database (NCIC)."));
   cards.push(tc);
 
   // Recalls
-  const rc = card("recall", "var(--warn)", `Recalls (${recalls.length})`, "LIVE", "p-live");
+  const rc = card("recall", "var(--warn)", `Recalls (${r.recalls.length})`, "LIVE", "p-live");
   rc.append(el("p", "note", "Matched by make, model and year. Some may not apply to this exact car. Check which are still open for this VIN on NHTSA."));
-  const parkIt = recalls.filter(r => r.parkIt || r.parkOutSide);
+  const parkIt = r.recalls.filter(x => x.parkIt);
   if (parkIt.length) {
     const w = el("div", "theft bad"); w.append(svg("recall", "var(--bad)"));
     const t = el("div"); t.append(el("b", null, `${parkIt.length} "do not drive" or "park outside" recall${parkIt.length > 1 ? "s" : ""}`),
@@ -339,28 +531,25 @@ async function run(vin) {
   const open = el("a", "btn ghost", "Check open recalls for this VIN");
   open.href = "https://www.nhtsa.gov/recalls?vin=" + encodeURIComponent(vin); open.target = "_blank"; open.rel = "noopener";
   rc.append(open);
-  for (const r of recalls) {
+  for (const x of r.recalls) {
     const d = el("details"); const sm = el("summary");
-    const dot = el("span", "sev"); dot.style.background = SAFETY.test(r.Component) ? "var(--bad)" : "var(--warn)";
-    sm.append(dot, el("code", null, r.NHTSACampaignNumber), el("span", null, titleCase(r.Component)));
-    d.append(sm, el("p", null, r.Summary), el("p", null, "Fix: " + (r.Remedy || "See dealer.")));
+    const dot = el("span", "sev"); dot.style.background = SAFETY.test(x.component) ? "var(--bad)" : "var(--warn)";
+    sm.append(dot, el("code", null, x.id), el("span", null, titleCase(x.component)));
+    d.append(sm, el("p", null, x.summary), el("p", null, "Fix: " + (x.remedy || "See dealer.")));
     rc.append(d);
   }
   cards.push(rc);
 
   // Complaints
+  const c = r.complaints;
   const cc = card("chat", "var(--accent)", "Owner complaints", "LIVE", "p-live");
-  const sum = k => complaints.reduce((a, c) => a + (typeof c[k] === "boolean" ? +c[k] : (c[k] || 0)), 0);
   const stats = el("div", "stats");
-  [["Complaints", complaints.length], ["Crashes", sum("crash")], ["Fires", sum("fire")], ["Injuries", sum("numberOfInjuries")]]
+  [["Complaints", c.total], ["Crashes", c.crash], ["Fires", c.fire], ["Injuries", c.injuries]]
     .forEach(([k, n]) => { const d = el("div", "stat"); d.append(el("b", null, n.toLocaleString()), el("span", null, k)); stats.append(d); });
   cc.append(stats);
-  const counts = {};
-  complaints.forEach(c => (c.components || "").split(",").forEach(p => { p = p.trim(); if (p) counts[p] = (counts[p] || 0) + 1; }));
-  const topC = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  if (topC.length) {
-    const bars = el("div", "bars"); const max = topC[0][1];
-    topC.forEach(([k, n]) => {
+  if (c.top.length) {
+    const bars = el("div", "bars"); const max = c.top[0][1];
+    c.top.forEach(([k, n]) => {
       const b = el("div", "bar"); const t = el("div", "track"); const f = el("div", "fill");
       f.style.width = (n / max * 100) + "%"; t.append(f);
       b.append(el("span", null, titleCase(k)), el("span", "n", n), t); bars.append(b);
@@ -370,13 +559,14 @@ async function run(vin) {
   cards.push(cc);
 
   // Crash ratings
-  const rated = ncap && [ncap.OverallRating, ncap.OverallFrontCrashRating, ncap.OverallSideCrashRating, ncap.RolloverRating].some(x => parseInt(x, 10));
+  const n = r.ncap;
+  const rated = n && [n.overall, n.front, n.side, n.rollover].some(x => parseInt(x, 10));
   const nc = card("star", "#f5b400", "Crash-test ratings", rated ? "LIVE" : null, "p-live");
   if (rated) {
-    nc.append(el("p", "note", ncap.VehicleDescription));
+    nc.append(el("p", "note", n.desc));
     const box = el("div"); box.style.marginTop = "8px";
-    [["Overall", ncap.OverallRating], ["Frontal crash", ncap.OverallFrontCrashRating], ["Side crash", ncap.OverallSideCrashRating], ["Rollover", ncap.RolloverRating]]
-      .forEach(([k, n]) => { const r = el("div", "rating-row"); r.append(el("span", null, k), stars(n)); box.append(r); });
+    [["Overall", n.overall], ["Frontal crash", n.front], ["Side crash", n.side], ["Rollover", n.rollover]]
+      .forEach(([k, x]) => { const row = el("div", "rating-row"); row.append(el("span", null, k), stars(x)); box.append(row); });
     nc.append(box);
   } else {
     nc.append(el("p", "note", "NHTSA has no 5-star crash test for this model year."));
@@ -390,18 +580,96 @@ async function run(vin) {
    ["crash", "Police-reported accidents", "State crash records or LexisNexis BuyCrash."],
    ["wrench", "Service & repair records", "Repair-shop software partners."],
    ["eye", "Unreported damage", "AI damage detection on listing photos."]]
-    .forEach(([i, t, n]) => { const r = el("div", "soon"); const ic = el("div", "ico"); ic.style.background = "var(--bg2)"; ic.append(svg(i, "var(--muted)"));
-      const tx = el("div"); tx.append(el("b", null, t), el("p", "note", n)); tx.lastChild.style.marginTop = "0"; r.append(ic, tx); grid.append(r); });
+    .forEach(([i, t, d]) => { const row = el("div", "soon"); const ic = el("div", "ico"); ic.style.background = "var(--bg2)"; ic.append(svg(i, "var(--muted)"));
+      const tx = el("div"); tx.append(el("b", null, t), el("p", "note", d)); tx.lastChild.style.marginTop = "0"; row.append(ic, tx); grid.append(row); });
   sc.append(grid);
   cards.push(sc);
 
-  cards.forEach((c, i) => c.style.animationDelay = (i * 60) + "ms");
+  cards.forEach((x, i) => x.style.animationDelay = (i * 60) + "ms");
   out.replaceChildren(...cards);
-  document.title = `VinTrace report - ${v.ModelYear} ${titleCase(v.Make)} ${v.Model} ${vin}`;
+  document.title = `VinTrace report - ${carName(r)} ${vin}`;
   const ph = document.getElementById("print-head");
-  const right = el("span"); right.append(`VIN ${vin}`, el("br"), `Generated ${new Date().toLocaleString()}`);
-  ph.replaceChildren(el("b", null, `Vehicle History Report: ${v.ModelYear} ${titleCase(v.Make)} ${v.Model}`), right);
-  saveRecent(vin, `${v.ModelYear} ${titleCase(v.Make)} ${v.Model}`);
+  const right = el("span"); right.append(`VIN ${vin}`, el("br"), `Data from ${new Date(r.fetchedAt).toLocaleString()}`);
+  ph.replaceChildren(el("b", null, `Vehicle History Report: ${carName(r)}`), right);
+  renderRecent();
+  window.scrollTo({ top: 0 });
+}
+
+function renderHome() {
+  const out = document.getElementById("out");
+  document.title = "VinTrace";
+  document.getElementById("print-head").replaceChildren();
+  const intro = el("div", "card empty");
+  intro.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>';
+  intro.append(el("p", null, "Type a VIN or tap the barcode button to scan it. The VIN is on the driver-side door jamb, the bottom of the windshield, or the registration card."));
+  const saved = store.list();
+  const cards = [intro];
+  if (saved.length) {
+    const sc = card("history", "var(--accent)", `Saved reports (${saved.length})`);
+    sc.append(el("p", "note", "Kept on this phone, so they open without a connection."));
+    for (const r of saved) {
+      const row = el("div", "saved-item");
+      const ms = el("div", "mini-score", String(scoreOf(r).value));
+      ms.style.background = `color-mix(in srgb, ${scoreColor(scoreOf(r).value)} 16%, transparent)`; ms.style.color = scoreColor(scoreOf(r).value);
+      const meta = el("div", "meta"); meta.append(el("b", null, carName(r)), el("small", null, `${r.vin} · ${new Date(r.fetchedAt).toLocaleDateString()}`));
+      const del = el("button", "del", "×"); del.type = "button"; del.setAttribute("aria-label", "Delete saved report");
+      del.addEventListener("click", e => { e.stopPropagation(); store.del(r.vin); renderHome(); renderRecent(); });
+      row.append(ms, meta, del);
+      row.addEventListener("click", () => { document.getElementById("vin").value = r.vin; lookup(r.vin); });
+      sc.append(row);
+    }
+    cards.push(sc);
+  }
+  out.replaceChildren(...cards);
+}
+
+function renderRecent() {
+  const box = document.getElementById("recent");
+  box.replaceChildren(...store.list().slice(0, 4).map(r => {
+    const c = el("button", "chip", carName(r)); c.type = "button"; c.title = r.vin;
+    c.addEventListener("click", () => { document.getElementById("vin").value = r.vin; lookup(r.vin); });
+    return c;
+  }));
+}
+
+/* ---------- Actions ---------- */
+
+async function lookup(vin, { fresh } = {}) {
+  const out = document.getElementById("out"), btn = document.getElementById("go");
+  const saved = store.get(vin);
+  if (saved && !fresh && Date.now() - saved.fetchedAt < 24 * 3600e3) { renderReport(saved, "saved"); return; }
+  out.replaceChildren(...[1, 2, 3, 4].map(() => el("div", "skel")));
+  btn.disabled = true;
+  try {
+    const r = await fetchReport(vin);
+    if (saved && saved.ai && !fresh) r.ai = saved.ai;
+    store.put(r);
+    renderReport(r);
+    history.replaceState(null, "", "?vin=" + vin);
+  } catch (err) {
+    if (err.decode) out.replaceChildren(el("div", "card err", "Couldn't decode that VIN. " + err.message));
+    else if (saved) renderReport(saved, "offline");
+    else out.replaceChildren(el("div", "card err", "Couldn't reach NHTSA. Check your connection and try again. (" + err.message + ")"));
+  } finally { btn.disabled = false; }
+}
+
+function copyText(text) {
+  try { return navigator.clipboard.writeText(text).then(() => true, () => false); } catch { return Promise.resolve(false); }
+}
+
+async function shareReport(r) {
+  const s = scoreOf(r), c = r.complaints;
+  const text = [
+    `VinTrace report: ${carName(r)}${r.v.Trim ? " " + r.v.Trim : ""}`,
+    `VIN ${r.vin} · Score ${s.value}/100`,
+    `${r.recalls.length} recalls (${s.safety} safety-related) · ${c.total.toLocaleString()} owner complaints`,
+    r.ai || quickSummary(r),
+    `Full report: ${SITE}?vin=${r.vin}`,
+  ].join("\n\n");
+  const title = `VinTrace: ${carName(r)}`;
+  if (native && native.share) { native.share(title, text); return; }
+  if (navigator.share) { try { await navigator.share({ title, text }); } catch {} return; }
+  toast(await copyText(text) ? "Report copied. Paste it into a message." : "Couldn't share on this device.");
 }
 
 // Expand every recall so the printout includes the full details
@@ -409,46 +677,145 @@ function printReport() {
   const closed = [...document.querySelectorAll("details:not([open])")];
   closed.forEach(d => d.open = true);
   const restore = () => closed.forEach(d => d.open = false);
-  if (window.AndroidPrint) {           // inside the Android app
-    window.AndroidPrint.print(document.title);
-    setTimeout(restore, 3000);
-  } else {
-    window.addEventListener("afterprint", restore, { once: true });
-    window.print();
+  if (native && native.print) { native.print(document.title); setTimeout(restore, 3000); }
+  else { window.addEventListener("afterprint", restore, { once: true }); window.print(); }
+}
+
+/* ---------- Barcode scanner ---------- */
+
+const VIN_W = { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8, J: 1, K: 2, L: 3, M: 4, N: 5, P: 7, R: 9, S: 2, T: 3, U: 4, V: 5, W: 6, X: 7, Y: 8, Z: 9 };
+function checkDigitOk(vin) {
+  const w = [8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2];
+  const sum = [...vin].reduce((a, ch, i) => a + (/\d/.test(ch) ? +ch : VIN_W[ch]) * w[i], 0) % 11;
+  return vin[8] === (sum === 10 ? "X" : String(sum));
+}
+// Door-jamb Code 39 barcodes often add a leading "I" (imported) or other junk around the VIN
+function vinFrom(text) {
+  const t = (text || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  for (let i = 0; i + 17 <= t.length; i++) { const c = t.slice(i, i + 17); if (VIN_RE.test(c)) return c; }
+  return null;
+}
+
+const scanner = { stream: null, reader: null, timer: null, last: null };
+
+async function openScanner() {
+  const ov = document.getElementById("scanner"), video = document.getElementById("video"), msg = document.getElementById("scan-msg");
+  msg.textContent = "Point at the VIN barcode on the door jamb or windshield.";
+  ov.classList.add("on");
+  scanner.last = null;
+  const found = text => {
+    const vin = vinFrom(text);
+    if (!vin) return;
+    // Accept a VIN that passes the check digit, or the same reading twice in a row
+    if (!checkDigitOk(vin) && scanner.last !== vin) { scanner.last = vin; return; }
+    closeScanner();
+    document.getElementById("vin").value = vin;
+    if (native && native.vibrate) native.vibrate();
+    toast("Scanned " + vin);
+    lookup(vin);
+  };
+  try {
+    if (!(await startNativeDetector(video, found))) await startZxing(video, found);
+  } catch (err) {
+    msg.textContent = err && err.name === "NotAllowedError"
+      ? "Camera permission was denied. Allow it in your phone's settings to scan." : "Couldn't start the camera.";
   }
 }
 
-function loadRecent() { try { return JSON.parse(localStorage.getItem("recent") || "[]"); } catch { return []; } }
-function saveRecent(vin, label) {
-  const list = [{ vin, label }, ...loadRecent().filter(x => x.vin !== vin)].slice(0, 5);
-  try { localStorage.setItem("recent", JSON.stringify(list)); } catch {}
-  renderRecent();
-}
-function renderRecent() {
-  const box = document.getElementById("recent");
-  box.replaceChildren(...loadRecent().map(x => {
-    const c = el("button", "chip", x.label); c.type = "button"; c.title = x.vin;
-    c.addEventListener("click", () => { document.getElementById("vin").value = x.vin; document.getElementById("f").requestSubmit(); });
-    return c;
-  }));
-}
-renderRecent();
+const CAMERA = { video: { facingMode: "environment", width: { ideal: 1920 } } };
 
-document.getElementById("f").addEventListener("submit", async e => {
+// Built-in barcode reader (Chrome on Android); returns false when unavailable
+async function startNativeDetector(video, found) {
+  if (!("BarcodeDetector" in window)) return false;
+  const want = ["code_39", "code_128", "data_matrix", "qr_code", "pdf417"];
+  const formats = (await BarcodeDetector.getSupportedFormats()).filter(f => want.includes(f));
+  if (!formats.length) return false;
+  const det = new BarcodeDetector({ formats });
+  scanner.stream = await navigator.mediaDevices.getUserMedia(CAMERA);
+  video.srcObject = scanner.stream; await video.play();
+  const tick = async () => {
+    if (!scanner.stream) return;
+    try { for (const b of await det.detect(video)) found(b.rawValue); } catch {}
+    scanner.timer = setTimeout(tick, 150);
+  };
+  tick();
+  return true;
+}
+
+// Fallback: bundled ZXing library
+async function startZxing(video, found) {
+  const Z = window.ZXing;
+  if (!Z) throw new Error("Scanner library not loaded");
+  const hints = new Map();
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.CODE_39, Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.DATA_MATRIX, Z.BarcodeFormat.QR_CODE, Z.BarcodeFormat.PDF_417]);
+  hints.set(Z.DecodeHintType.TRY_HARDER, true);
+  scanner.reader = new Z.BrowserMultiFormatReader(hints, 200);
+  await scanner.reader.decodeFromConstraints(CAMERA, video, res => { if (res) found(res.getText()); });
+}
+
+function closeScanner() {
+  document.getElementById("scanner").classList.remove("on");
+  clearTimeout(scanner.timer);
+  if (scanner.reader) { try { scanner.reader.reset(); } catch {} scanner.reader = null; }
+  if (scanner.stream) { scanner.stream.getTracks().forEach(t => t.stop()); scanner.stream = null; }
+  document.getElementById("video").srcObject = null;
+}
+
+/* ---------- Settings ---------- */
+
+function openSettings() {
+  const d = document.getElementById("settings");
+  document.getElementById("api-key").value = localStorage.getItem("anthropicKey") || "";
+  d.showModal();
+}
+
+/* ---------- Wiring ---------- */
+
+document.getElementById("scan-btn").addEventListener("click", openScanner);
+document.getElementById("scan-close").addEventListener("click", closeScanner);
+document.getElementById("settings-btn").addEventListener("click", openSettings);
+document.getElementById("settings-close").addEventListener("click", () => document.getElementById("settings").close());
+document.getElementById("key-save").addEventListener("click", () => {
+  const k = document.getElementById("api-key").value.trim();
+  if (k && !k.startsWith("sk-ant-")) { toast("That doesn't look like an Anthropic key (sk-ant-…)."); return; }
+  try { k ? localStorage.setItem("anthropicKey", k) : localStorage.removeItem("anthropicKey"); } catch {}
+  document.getElementById("settings").close();
+  toast(k ? "Key saved. New reports get an AI summary." : "Key removed.");
+});
+document.getElementById("key-clear").addEventListener("click", () => {
+  try { localStorage.removeItem("anthropicKey"); } catch {}
+  document.getElementById("api-key").value = "";
+  toast("Key removed.");
+});
+
+document.getElementById("f").addEventListener("submit", e => {
   e.preventDefault();
   const input = document.getElementById("vin");
   const vin = input.value.trim().toUpperCase();
-  const btn = document.getElementById("go");
-  if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) {
+  if (!VIN_RE.test(vin)) {
     document.getElementById("out").replaceChildren(el("div", "card err", "A VIN is 17 letters and digits (no I, O or Q)."));
     return;
   }
   input.blur();
-  btn.disabled = true;
-  try { await run(vin); }
-  catch (err) { document.getElementById("out").replaceChildren(el("div", "card err", "Couldn't reach NHTSA. Check your connection and try again. (" + err.message + ")")); }
-  finally { btn.disabled = false; }
+  lookup(vin, { fresh: true });
 });
+
+// Called by the Android back button. Returns true if the page handled it.
+window.vtBack = () => {
+  if (document.getElementById("scanner").classList.contains("on")) { closeScanner(); return true; }
+  const d = document.getElementById("settings"); if (d.open) { d.close(); return true; }
+  if (location.search) { history.replaceState(null, "", location.pathname); document.getElementById("vin").value = ""; renderHome(); return true; }
+  return false;
+};
+
+renderRecent();
+const startVin = new URLSearchParams(location.search).get("vin");
+if (startVin && VIN_RE.test(startVin.toUpperCase())) {
+  document.getElementById("vin").value = startVin.toUpperCase();
+  lookup(startVin.toUpperCase());
+} else {
+  renderHome();
+}
 </script>
 </body>
 </html>

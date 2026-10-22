@@ -7,8 +7,8 @@ android {
         applicationId 'app.vintrace'
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode 2
+        versionName '1.1'
     }
     buildTypes {
         release { minifyEnabled false; signingConfig signingConfigs.debug }
@@ -17,7 +17,10 @@ android {
 
 // Ship the same index.html that GitHub Pages serves
 tasks.register('copyWeb', Copy) {
-    from("$rootDir/../index.html")
+    from("$rootDir/..") {
+        include 'index.html'
+        include 'vendor/**'
+    }
     into("$projectDir/src/main/assets")
 }
 preBuild.dependsOn copyWeb
